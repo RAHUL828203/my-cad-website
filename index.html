@@ -1,134 +1,64 @@
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My CAD Portfolio | SolidWorks Designer</title>
-  <style>
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #0b1220;
-      color: white;
-      line-height: 1.6;
-    }
-    header {
-      background: #111d30;
-      padding: 18px 7%;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .logo { font-size: 23px; font-weight: bold; color: #38bdf8; }
-    nav a {
-      color: white;
-      text-decoration: none;
-      margin: 0 10px;
-    }
-    nav a:hover { color: #38bdf8; }
-    .hero {
-      text-align: center;
-      padding: 110px 20px;
-      background: linear-gradient(135deg, #142b4c, #0b1220);
-    }
-    h1 { font-size: clamp(32px, 6vw, 55px); margin: 0; }
-    h1 span, h2 { color: #38bdf8; }
-    .hero p { color: #cbd5e1; font-size: 19px; }
-    .btn {
-      display: inline-block;
-      background: #0284c7;
-      color: white;
-      padding: 12px 25px;
-      border-radius: 8px;
-      text-decoration: none;
-      margin-top: 20px;
-    }
-    .btn:hover { background: #0369a1; }
-    section { padding: 65px 8%; }
-    h2 { font-size: 30px; }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-      gap: 22px;
-      margin-top: 25px;
-    }
-    .card {
-      background: #18263a;
-      padding: 28px;
-      border-radius: 12px;
-      border: 1px solid #30445c;
-    }
-    .card h3 { color: #7dd3fc; }
-    .card p { color: #cbd5e1; }
-    footer {
-      background: #111d30;
-      padding: 25px;
-      text-align: center;
-      color: #94a3b8;
-    }
-  </style>
-</head>
-<body>
+<h2 style="text-align:center;color:#38bdf8;">
+  My 3D CAD Model
+</h2>
 
-<header>
-  <div class="logo">MY CAD STUDIO</div>
-  <nav>
-    <a href="#home">Home</a>
-    <a href="#about">About</a>
-    <a href="#projects">Projects</a>
-    <a href="#contact">Contact</a>
-  </nav>
-</header>
+<div id="cad-viewer" style="width:100%;height:500px;"></div>
 
-<div class="hero" id="home">
-  <h1>Welcome to <span>My CAD Studio</span></h1>
-  <p>SolidWorks | 3D Modeling | Mechanical Design</p>
-  <a class="btn" href="#projects">Explore Projects</a>
-</div>
+<script type="module">
+import * as THREE from 'https://esm.sh/three@0.160.0';
+import { OrbitControls } from 'https://esm.sh/three@0.160.0/addons/controls/OrbitControls.js';
+import { STLLoader } from 'https://esm.sh/three@0.160.0/addons/loaders/STLLoader.js';
 
-<section id="about">
-  <h2>About Me</h2>
-  <p>
-    I design mechanical components, 3D parts and
-    assemblies using SolidWorks. This website
-    showcases my CAD design projects.
-  </p>
-</section>
+const box = document.getElementById('cad-viewer');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b1220);
 
-<section id="projects">
-  <h2>My 3D CAD Projects</h2>
-  <div class="cards">
-    <div class="card">
-      <h3>Drone Design</h3>
-      <p>3D CAD design of drone frames and components.</p>
-    </div>
-    <div class="card">
-      <h3>Mechanical Assembly</h3>
-      <p>SolidWorks assembly and mechanical components.</p>
-    </div>
-    <div class="card">
-      <h3>3D Parts</h3>
-      <p>Custom mechanical parts and engineering models.</p>
-    </div>
-  </div>
-</section>
+const camera = new THREE.PerspectiveCamera(45, box.clientWidth / box.clientHeight, 0.1, 10000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(box.clientWidth, box.clientHeight);
+box.appendChild(renderer.domElement);
 
-<section id="contact">
-  <h2>Contact</h2>
-  <p>Interested in my CAD projects?</p>
-  <a class="btn" href="https://github.com/RAHUL828203">
-    Visit My GitHub
-  </a>
-</section>
+scene.add(new THREE.HemisphereLight(0xffffff, 0x444466, 3));
 
-<footer>
-  &copy; 2026 My CAD Studio. All rights reserved.
-</footer>
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
 
-</body>
-</html>
+new STLLoader().load(
+  './Plastic%20Enclosure%20with%20Snaps.STL',
+  (geometry) => {
+    geometry.computeVertexNormals();
+    geometry.center();
+    geometry.computeBoundingSphere();
+
+    const model = new THREE.Mesh(
+      geometry,
+      new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        metalness: 0.25,
+        roughness: 0.45,
+        side: THREE.DoubleSide
+      })
+    );
+
+    scene.add(model);
+
+    const radius = geometry.boundingSphere.radius;
+    camera.position.set(radius * 2, radius * 1.5, radius * 2);
+    camera.near = Math.max(radius / 1000, 0.001);
+    camera.far = radius * 100;
+    camera.updateProjectionMatrix();
+    controls.target.set(0, 0, 0);
+    controls.update();
+  },
+  undefined,
+  (error) => console.error('STL loading failed:', error)
+);
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
